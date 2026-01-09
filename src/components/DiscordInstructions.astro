@@ -1,10 +1,28 @@
 ---
-const eventUrl = "https://discord.gg/astro-fr-489463570552324097?event=1459141651069927617";
+const eventUrls = [
+    {
+        url: "https://discord.gg/astro-fr-489463570552324097?event=1459141651069927617",
+        date: "le 4 mars",
+    },
+    {
+        url: "https://discord.gg/astro-fr-489463570552324097?event=1459165623379693696",
+        date: "le 5 mars",
+    },
+];
 ---
 
-<a href={eventUrl} target="_blank" rel="noopener" class="discord-event-link">
-    Rejoindre la conférence sur Discord
-</a>
+{
+    eventUrls.map((event) => (
+        <a
+            href={event.url}
+            target="_blank"
+            rel="noopener"
+            class="discord-event-link"
+        >
+            Rejoindre la conférence {event.date}
+        </a>
+    ))
+}
 
 <style>
     .discord-event-link {
@@ -12,6 +30,7 @@ const eventUrl = "https://discord.gg/astro-fr-489463570552324097?event=145914165
         padding: 0.75rem 1.5rem;
         background: var(--accent, #4a90d9);
         color: white;
+        margin: 0.5em;
         border: none;
         border-radius: 4px;
         text-decoration: none;
