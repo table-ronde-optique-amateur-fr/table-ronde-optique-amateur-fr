@@ -15,13 +15,14 @@ const events = [
 ];
 
 const location = "Discord Astro-FR - canal fabrication et contrôle optiques";
-const description = "Table ronde optique amateur francophone\\n\\nPlus d'infos: https://table-ronde-optique-amateur-fr.github.io\\nDiscord: https://astro-fr.fr/";
+const description =
+    "Table ronde optique amateur francophone\\n\\nPlus d'infos: https://table-ronde-optique-amateur-fr.github.io\\nDiscord: https://astro-fr.fr/";
 
 function toGoogleDate(isoDate: string): string {
     return isoDate.replace(/[-:]/g, "").replace("T", "T");
 }
 
-function buildGoogleUrl(event: typeof events[0]): string {
+function buildGoogleUrl(event: (typeof events)[0]): string {
     const params = new URLSearchParams({
         action: "TEMPLATE",
         text: event.title,
@@ -33,7 +34,7 @@ function buildGoogleUrl(event: typeof events[0]): string {
     return `https://www.google.com/calendar/render?${params.toString()}`;
 }
 
-function buildOutlookUrl(event: typeof events[0]): string {
+function buildOutlookUrl(event: (typeof events)[0]): string {
     const params = new URLSearchParams({
         subject: event.title,
         startdt: event.start,
@@ -49,14 +50,37 @@ function buildOutlookUrl(event: typeof events[0]): string {
 <div class="add-to-calendar">
     <span class="calendar-label">Ajouter à l'agenda :</span>
     <span class="calendar-days">
-        {events.map((event) => (
-            <span class="calendar-event">
-                <span class="event-date">{event.date}</span>
-                <a href={buildGoogleUrl(event)} target="_blank" rel="noopener" class="calendar-btn">Google</a>
-                <a href={buildOutlookUrl(event)} target="_blank" rel="noopener" class="calendar-btn">Outlook</a>
-                <button class="calendar-btn ics" data-title={event.title} data-start={event.start} data-end={event.end}>ICS/Apple</button>
-            </span>
-        ))}
+        {
+            events.map((event) => (
+                <span class="calendar-event">
+                    <span class="event-date">{event.date}</span>
+                    <a
+                        href={buildGoogleUrl(event)}
+                        target="_blank"
+                        rel="noopener"
+                        class="calendar-btn"
+                    >
+                        Google
+                    </a>
+                    <a
+                        href={buildOutlookUrl(event)}
+                        target="_blank"
+                        rel="noopener"
+                        class="calendar-btn"
+                    >
+                        Outlook
+                    </a>
+                    <button
+                        class="calendar-btn ics"
+                        data-title={event.title}
+                        data-start={event.start}
+                        data-end={event.end}
+                    >
+                        ICS/Apple
+                    </button>
+                </span>
+            ))
+        }
     </span>
 </div>
 
@@ -64,7 +88,8 @@ function buildOutlookUrl(event: typeof events[0]): string {
     function generateICS(title, start, end) {
         const formatDate = (isoDate) => isoDate.replace(/[-:]/g, "");
         const uid = `${start.replace(/[-:T]/g, "")}-${Math.random().toString(36).substr(2, 9)}@table-ronde-optique`;
-        const now = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+        const now =
+            new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 
         return [
             "BEGIN:VCALENDAR",
@@ -139,6 +164,7 @@ function buildOutlookUrl(event: typeof events[0]): string {
     .calendar-days {
         display: flex;
         gap: 1rem;
+        flex-wrap: wrap;
     }
 
     .calendar-event {

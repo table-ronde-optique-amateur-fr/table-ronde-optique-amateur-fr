@@ -6,12 +6,6 @@ import HeaderLink from "./HeaderLink.astro";
 <header>
     <nav>
         <h2><a href="/">{SITE_TITLE}</a></h2>
-        <div class="internal-links">
-            <HeaderLink href="/">Accueil</HeaderLink>
-        </div>
-        <div class="social-links">
-            <a href="https://astro-fr.fr/" target="_blank">Discord Astro-FR</a>
-        </div>
     </nav>
 </header>
 <style>
@@ -23,6 +17,7 @@ import HeaderLink from "./HeaderLink.astro";
     }
     h2 {
         margin: 0;
+        padding: 1em 0;
         font-size: 1em;
     }
 
