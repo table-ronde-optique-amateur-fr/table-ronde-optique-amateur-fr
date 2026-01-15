@@ -7,6 +7,7 @@ interface Speaker {
     photoPath: string;
     title: string;
     description: string;
+    website?: string;
 }
 
 const tsvPath = path.join(process.cwd(), "src/data/speakers.tsv");
@@ -64,6 +65,21 @@ const speakers: Speaker[] = dataLines
                     : speaker.description;
                 return (
                     <article class="speaker-card">
+                        <button
+                            class="share-btn"
+                            type="button"
+                            title="Télécharger une image de partage"
+                            data-name={speaker.name}
+                            data-title={speaker.title}
+                            data-photo={speaker.photoPath}
+                            data-description={speaker.description}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                        </button>
                         {speaker.photoPath.length ? (
                             <img
                                 src={speaker.photoPath}
@@ -116,6 +132,160 @@ const speakers: Speaker[] = dataLines
             }
         });
     });
+
+    const CARD_SIZE = 1080;
+    const EVENT_URL = "table-ronde-optique-amateur.fr";
+    const EVENT_DATE = "4-5 mars 2026";
+
+    function loadImage(src: string): Promise<HTMLImageElement> {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = src;
+        });
+    }
+
+    function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+        const words = text.split(" ");
+        const lines: string[] = [];
+        let currentLine = "";
+
+        for (const word of words) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && currentLine) {
+                lines.push(currentLine);
+                currentLine = word;
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+        return lines;
+    }
+
+    async function generateShareCard(name: string, title: string, photoSrc: string, description: string) {
+        const canvas = document.createElement("canvas");
+        canvas.width = CARD_SIZE;
+        canvas.height = CARD_SIZE;
+        const ctx = canvas.getContext("2d")!;
+
+        const bgImage = await loadImage("/optics.jpg");
+        const bgMin = Math.min(bgImage.width, bgImage.height);
+        const sx = (bgImage.width - bgMin) / 2;
+        const sy = (bgImage.height - bgMin) / 2;
+        ctx.drawImage(bgImage, sx, sy, bgMin, bgMin, 0, 0, CARD_SIZE, CARD_SIZE);
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+        ctx.fillRect(0, 0, CARD_SIZE, CARD_SIZE);
+
+        const photoSize = 200;
+        const photoX = (CARD_SIZE - photoSize) / 2;
+        const photoY = 80;
+
+        if (photoSrc) {
+            try {
+                const photo = await loadImage(photoSrc);
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(photoX + photoSize / 2, photoY + photoSize / 2, photoSize / 2, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.clip();
+                const srcSize = Math.min(photo.width, photo.height);
+                const srcX = (photo.width - srcSize) / 2;
+                const srcY = (photo.height - srcSize) / 2;
+                ctx.drawImage(photo, srcX, srcY, srcSize, srcSize, photoX, photoY, photoSize, photoSize);
+                ctx.restore();
+
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(photoX + photoSize / 2, photoY + photoSize / 2, photoSize / 2, 0, Math.PI * 2);
+                ctx.stroke();
+            } catch {
+            }
+        }
+
+        const padding = 60;
+        const textMaxWidth = CARD_SIZE - padding * 2;
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 64px system-ui, -apple-system, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(name, CARD_SIZE / 2, photoY + photoSize + 80);
+
+        ctx.fillStyle = "rgba(100, 200, 150, 0.95)";
+        ctx.font = "italic 48px system-ui, -apple-system, sans-serif";
+        const titleLines = wrapText(ctx, title, textMaxWidth);
+        let titleY = photoY + photoSize + 150;
+        for (const line of titleLines.slice(0, 2)) {
+            ctx.fillText(line, CARD_SIZE / 2, titleY);
+            titleY += 58;
+        }
+
+        if (description) {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+            ctx.font = "36px system-ui, -apple-system, sans-serif";
+            const descLines = wrapText(ctx, description, textMaxWidth);
+            const maxLines = 5;
+            let descY = titleY + 40;
+            const linesToShow = descLines.slice(0, maxLines);
+            for (let i = 0; i < linesToShow.length; i++) {
+                let line = linesToShow[i];
+                if (i === maxLines - 1 && descLines.length > maxLines) {
+                    line = line.trimEnd() + " [...]";
+                }
+                ctx.fillText(line, CARD_SIZE / 2, descY);
+                descY += 46;
+            }
+        }
+
+        ctx.fillStyle = "rgba(100, 200, 150, 0.9)";
+        ctx.font = "600 48px system-ui, -apple-system, sans-serif";
+        ctx.fillText(EVENT_DATE, CARD_SIZE / 2, CARD_SIZE - 110);
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+        ctx.font = "42px system-ui, -apple-system, sans-serif";
+        ctx.fillText(EVENT_URL, CARD_SIZE / 2, CARD_SIZE - 55);
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+        ctx.font = "20px system-ui, -apple-system, sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText("Isabel Llorente Garcia / Wikimedia Commons", CARD_SIZE - 20, CARD_SIZE - 18);
+
+        const link = document.createElement("a");
+        link.download = `${name.toLowerCase().replace(/[^a-z0-9]/g, "-")}-table-ronde-optique.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+    }
+
+    document.querySelectorAll(".share-btn").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const button = btn as HTMLElement;
+            const name = button.dataset.name || "";
+            const title = button.dataset.title || "";
+            const photo = button.dataset.photo || "";
+            const description = button.dataset.description || "";
+
+            button.style.opacity = "0.5";
+            button.style.pointerEvents = "none";
+
+            try {
+                await generateShareCard(name, title, photo, description);
+            } catch (err) {
+                console.error("Failed to generate share card:", err);
+                alert("Erreur lors de la génération de l'image");
+            } finally {
+                button.style.opacity = "";
+                button.style.pointerEvents = "";
+            }
+        });
+    });
 </script>
 
 <style>
@@ -141,6 +311,7 @@ const speakers: Speaker[] = dataLines
     }
 
     .speaker-card {
+        position: relative;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -150,6 +321,29 @@ const speakers: Speaker[] = dataLines
         border: 1px solid #ddd;
         border-radius: 8px;
         background: #fafafa;
+    }
+
+    .share-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.05);
+        border: none;
+        border-radius: 6px;
+        color: #666;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+    }
+
+    .share-btn:hover {
+        background: rgba(0, 0, 0, 0.1);
+        color: #333;
     }
 
     .speaker-photo {
